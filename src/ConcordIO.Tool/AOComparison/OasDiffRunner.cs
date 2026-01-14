@@ -16,33 +16,17 @@ public class OasDiffRunner
     }
 
     /// <summary>
-    /// Gets the diff between two OpenAPI specs.
-    /// </summary>
-    public async Task<OasDiffResult> DiffAsync(string baseSpec, string revisionSpec, string format = "yaml")
-    {
-        return await RunAsync($"diff \"{baseSpec}\" \"{revisionSpec}\" --format {format}");
-    }
-
-    /// <summary>
     /// Gets breaking changes between two OpenAPI specs.
     /// </summary>
-    public async Task<OasDiffResult> BreakingAsync(string baseSpec, string revisionSpec, string format = "text")
+    public async Task<OasDiffResult> Breaking(string baseSpec, string revisionSpec, string arguments)
     {
-        return await RunAsync($"breaking \"{baseSpec}\" \"{revisionSpec}\" --format {format}");
-    }
-
-    /// <summary>
-    /// Gets the changelog between two OpenAPI specs.
-    /// </summary>
-    public async Task<OasDiffResult> ChangelogAsync(string baseSpec, string revisionSpec, string format = "text")
-    {
-        return await RunAsync($"changelog \"{baseSpec}\" \"{revisionSpec}\" --format {format}");
+        return await Run($"breaking \"{baseSpec}\" \"{revisionSpec}\" {arguments}");
     }
 
     /// <summary>
     /// Runs an arbitrary oasdiff command.
     /// </summary>
-    public async Task<OasDiffResult> RunAsync(string arguments)
+    public async Task<OasDiffResult> Run(string arguments)
     {
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
@@ -67,7 +51,7 @@ public class OasDiffRunner
             ExitCode = process.ExitCode,
             Output = output,
             Error = error,
-            Success = process.ExitCode == 0
+            Breaking = process.ExitCode != 0
         };
     }
 
@@ -118,5 +102,5 @@ public class OasDiffResult
     public int ExitCode { get; init; }
     public string Output { get; init; } = string.Empty;
     public string Error { get; init; } = string.Empty;
-    public bool Success { get; init; }
+    public bool Breaking { get; init; }
 }
