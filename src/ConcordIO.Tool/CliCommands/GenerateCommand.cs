@@ -98,6 +98,28 @@ public partial class RootCommand
             var clientClass = ClientClassName ?? $"{SanitizeClassName(PackageId)}Client";
             var clientPackageId = ClientPackageId ?? $"{PackageId}.Client";
 
+            var parsedNswagOptions = ParseKeyValuePairs(NswagOptions);
+            var normalizedNswagOptions = parsedNswagOptions
+                .Select(kvp => new KeyValuePair<string, string>(NormalizePrefix("NSwag", kvp.Key), kvp.Value))
+                .ToList();
+
+            // default to STJ if not specified
+            var stjOptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "NSwagJsonLibrary", "SystemTextJson" },
+                { "NSwagJsonPolymorphicSerializationStyle", "SystemTextJson" }
+            };
+
+            if (!normalizedNswagOptions.Any(o => stjOptions.ContainsKey(o.Key)))
+            {
+                normalizedNswagOptions.AddRange(stjOptions);
+            }
+
+            if (!normalizedNswagOptions.Any(o => string.Equals("NSwagGenerateExceptionClasses", o.Key, StringComparison.OrdinalIgnoreCase)))
+            {
+                normalizedNswagOptions.Add(new("NSwagGenerateExceptionClasses", "true"));
+            }
+
             var model = new Dictionary<string, object>
             {
                 ["client_package_id"] = clientPackageId,
@@ -110,8 +132,7 @@ public partial class RootCommand
                 ["package_properties"] = ParseKeyValuePairs(PackageProperties),
                 ["nswag_client_class_name"] = clientClass,
                 ["nswag_output_path"] = clientClass,
-                ["nswag_generate_exception_classes"] = "true",
-                ["nswag_options"] = ParseKeyValuePairs(NswagOptions)
+                ["nswag_options"] = normalizedNswagOptions
             };
 
             // Generate client nuspec
@@ -133,6 +154,19 @@ public partial class RootCommand
             string.Concat(name.Split('.').Select(part =>
                     char.ToUpperInvariant(part[0]) + part[1..]));
 
+        private static string NormalizePrefix(string prefix, string value)
+        {
+            if (value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return value;
+            }
+            return prefix + value;
+        }
+
+        /// <summary>
+        /// Not a dictionary because multiple key-values with the same key is expected
+        /// it's the command line argument format for arrays
+        /// </summary>
         private static KeyValuePair<string, string>[] ParseKeyValuePairs(string[]? pairs) =>
             pairs?.Select(pair =>
             {
