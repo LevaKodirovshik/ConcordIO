@@ -1,0 +1,7 @@
+<!-- ConcordIO.AsyncApi.Client.props - Transitive import for indirect package references -->
+<Project>
+
+  <!-- Import the main props file -->
+  <Import Project="$(MSBuildThisFileDirectory)..\build\ConcordIO.AsyncApi.Client.props" />
+
+</Project>

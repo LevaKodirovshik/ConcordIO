@@ -14,6 +14,9 @@
     <!-- JSON Schema generation from .NET types -->
     <PackageReference Include="NJsonSchema" Version="11.3.2" />
 
+    <!-- C# code generation from JSON Schema -->
+    <PackageReference Include="NJsonSchema.CodeGeneration.CSharp" Version="11.3.2" />
+
     <!-- Serialization -->
     <PackageReference Include="Neuroglia.Serialization" Version="4.20.0" />
     <PackageReference Include="Neuroglia.Serialization.YamlDotNet" Version="4.20.0" />

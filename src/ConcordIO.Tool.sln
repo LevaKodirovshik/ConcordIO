@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConcordIO.AsyncApi.Server",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConcordIO.AsyncApi.Tests", "ConcordIO.AsyncApi.Tests\ConcordIO.AsyncApi.Tests.csproj", "{7C8A5F10-CBF6-4D7C-AD3F-F4B78208AA53}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConcordIO.AsyncApi.Client", "ConcordIO.AsyncApi.Client\ConcordIO.AsyncApi.Client.csproj", "{C9CAAFFB-4478-4059-991D-F35DBFF38027}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{7C8A5F10-CBF6-4D7C-AD3F-F4B78208AA53}.Release|x64.Build.0 = Release|Any CPU
 		{7C8A5F10-CBF6-4D7C-AD3F-F4B78208AA53}.Release|x86.ActiveCfg = Release|Any CPU
 		{7C8A5F10-CBF6-4D7C-AD3F-F4B78208AA53}.Release|x86.Build.0 = Release|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Debug|x64.Build.0 = Debug|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Debug|x86.Build.0 = Debug|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Release|x64.ActiveCfg = Release|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Release|x64.Build.0 = Release|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Release|x86.ActiveCfg = Release|Any CPU
+		{C9CAAFFB-4478-4059-991D-F35DBFF38027}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

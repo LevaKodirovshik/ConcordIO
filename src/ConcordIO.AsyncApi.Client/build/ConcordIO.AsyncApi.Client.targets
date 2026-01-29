@@ -1,0 +1,70 @@
+<!-- ConcordIO.AsyncApi.Client.targets - Build integration -->
+<Project>
+
+  <PropertyGroup>
+    <_ConcordIOClientToolsDir>$(MSBuildThisFileDirectory)..\tools\net10.0\</_ConcordIOClientToolsDir>
+    <_ConcordIOClientTaskAssembly>$(_ConcordIOClientToolsDir)ConcordIO.AsyncApi.Client.dll</_ConcordIOClientTaskAssembly>
+  </PropertyGroup>
+
+  <!-- Register the MSBuild task -->
+  <UsingTask TaskName="ConcordIO.AsyncApi.Client.Tasks.GenerateContractsTask" 
+             AssemblyFile="$(_ConcordIOClientTaskAssembly)" />
+
+  <!-- 
+    Generate contracts before compilation.
+    This target runs when:
+    1. There are ConcordIOAsyncApiContract items defined (from referenced contract packages)
+    2. Or the user has manually specified AsyncAPI files
+  -->
+  <Target Name="ConcordIOGenerateContracts"
+          BeforeTargets="CoreCompile"
+          Condition="'@(ConcordIOAsyncApiContract)' != ''">
+
+    <!-- Compute output directory at target time when IntermediateOutputPath is available -->
+    <PropertyGroup>
+      <_ConcordIOClientOutputDir>$(ConcordIOClientOutputPath)</_ConcordIOClientOutputDir>
+      <_ConcordIOClientOutputDir Condition="'$(_ConcordIOClientOutputDir)' == ''">$(IntermediateOutputPath)ConcordIO.AsyncApi.Generated\</_ConcordIOClientOutputDir>
+    </PropertyGroup>
+
+    <Message Text="ConcordIO.Client: Generating contracts..." Importance="high" />
+    <Message Text="ConcordIO.Client:   AsyncAPI files: @(ConcordIOAsyncApiContract)" Importance="normal" />
+    <Message Text="ConcordIO.Client:   Output: $(_ConcordIOClientOutputDir)" Importance="normal" />
+
+    <!-- Collect referenced assemblies for external type detection -->
+    <ItemGroup>
+      <_ConcordIOClientReferencedAssemblies Include="@(ReferencePath)" />
+    </ItemGroup>
+
+    <!-- Run the generation task -->
+    <GenerateContractsTask
+        AsyncApiFiles="@(ConcordIOAsyncApiContract)"
+        OutputDirectory="$(_ConcordIOClientOutputDir)"
+        ReferencedAssemblies="@(_ConcordIOClientReferencedAssemblies)"
+        GenerateDataAnnotations="$(ConcordIOClientGenerateDataAnnotations)"
+        GenerateNullableReferenceTypes="$(ConcordIOClientGenerateNullableReferenceTypes)"
+        ClassStyle="$(ConcordIOClientClassStyle)">
+      <Output TaskParameter="GeneratedFiles" ItemName="_ConcordIOClientGeneratedFiles" />
+    </GenerateContractsTask>
+
+    <!-- Add generated files to compilation -->
+    <ItemGroup>
+      <Compile Include="@(_ConcordIOClientGeneratedFiles)" />
+      <FileWrites Include="@(_ConcordIOClientGeneratedFiles)" />
+    </ItemGroup>
+
+    <Message Text="ConcordIO.Client: Generated @(_ConcordIOClientGeneratedFiles->Count()) file(s)" Importance="high" />
+
+  </Target>
+
+  <!-- Clean up generated files -->
+  <Target Name="ConcordIOCleanGeneratedContracts"
+          AfterTargets="Clean">
+    <PropertyGroup>
+      <_ConcordIOClientOutputDir>$(ConcordIOClientOutputPath)</_ConcordIOClientOutputDir>
+      <_ConcordIOClientOutputDir Condition="'$(_ConcordIOClientOutputDir)' == ''">$(IntermediateOutputPath)ConcordIO.AsyncApi.Generated\</_ConcordIOClientOutputDir>
+    </PropertyGroup>
+    
+    <RemoveDir Directories="$(_ConcordIOClientOutputDir)" Condition="Exists('$(_ConcordIOClientOutputDir)')" />
+  </Target>
+
+</Project>
