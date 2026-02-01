@@ -3,88 +3,16 @@ using System.Diagnostics;
 namespace ConcordIO.AsyncApi.Tests.E2E;
 
 /// <summary>
-/// Fixture that builds and packs the server project once for all E2E tests.
-/// Using IAsyncLifetime for proper async initialization without deadlocks.
-/// </summary>
-public class ServerPackageFixture : IAsyncLifetime
-{
-    public string TestDir { get; private set; } = null!;
-    public string PackagesDir { get; private set; } = null!;
-    public string NugetCacheDir { get; private set; } = null!;
-    public string ServerProjectPath { get; private set; } = null!;
-
-    public async Task InitializeAsync()
-    {
-        TestDir = Path.Combine(Path.GetTempPath(), "ConcordIO.AsyncApi.Tests", Path.GetRandomFileName().Replace(".", ""));
-        PackagesDir = Path.Combine(TestDir, "packages");
-        NugetCacheDir = Path.Combine(TestDir, "nuget-cache");
-        Directory.CreateDirectory(TestDir);
-        Directory.CreateDirectory(PackagesDir);
-        Directory.CreateDirectory(NugetCacheDir);
-
-        // Find the server project path relative to the test assembly
-        var testAssemblyDir = Path.GetDirectoryName(typeof(ServerPackageFixture).Assembly.Location)!;
-        ServerProjectPath = Path.GetFullPath(Path.Combine(testAssemblyDir, "..", "..", "..", "..", "ConcordIO.AsyncApi.Server", "ConcordIO.AsyncApi.Server.csproj"));
-
-        // Build and pack the server project
-        var (buildExitCode, buildOutput) = await RunDotNetAsync("build", Path.GetDirectoryName(ServerProjectPath)!, "-c Release");
-        if (buildExitCode != 0)
-            throw new Exception($"Server project build failed: {buildOutput}");
-
-        var (packExitCode, packOutput) = await RunDotNetAsync("pack", Path.GetDirectoryName(ServerProjectPath)!,
-            $"-c Release -o \"{PackagesDir}\"");
-        if (packExitCode != 0)
-            throw new Exception($"Server project pack failed: {packOutput}");
-    }
-
-    public Task DisposeAsync()
-    {
-        try
-        {
-            Directory.Delete(TestDir, recursive: true);
-        }
-        catch
-        {
-            // Ignore cleanup errors
-        }
-        return Task.CompletedTask;
-    }
-
-    private async Task<(int ExitCode, string Output)> RunDotNetAsync(string command, string workingDir, string args = "")
-    {
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            Arguments = $"{command} {args}",
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        process.StartInfo.Environment["NUGET_PACKAGES"] = NugetCacheDir;
-
-        process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var error = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        return (process.ExitCode, output + error);
-    }
-}
-
-/// <summary>
 /// End-to-end tests that verify the ConcordIO.AsyncApi.Server package works correctly
 /// when added to a real .NET project. These tests create temporary projects, add the
 /// package reference, and verify that AsyncAPI specs are generated at build time.
 /// </summary>
-public class AsyncApiServerPackageIntegrationTests : IClassFixture<ServerPackageFixture>
+[Collection(AsyncApiE2ECollection.Name)]
+public class AsyncApiServerPackageIntegrationTests
 {
-    private readonly ServerPackageFixture _fixture;
+    private readonly AsyncApiPackageFixture _fixture;
 
-    public AsyncApiServerPackageIntegrationTests(ServerPackageFixture fixture)
+    public AsyncApiServerPackageIntegrationTests(AsyncApiPackageFixture fixture)
     {
         _fixture = fixture;
     }
@@ -97,7 +25,7 @@ public class AsyncApiServerPackageIntegrationTests : IClassFixture<ServerPackage
         // Act
         var nupkgPath = Directory.GetFiles(_fixture.PackagesDir, "ConcordIO.AsyncApi.Server.*.nupkg").First();
         var extractDir = Path.Combine(_fixture.TestDir, "extracted-props");
-        System.IO.Compression.ZipFile.ExtractToDirectory(nupkgPath, extractDir);
+        System.IO.Compression.ZipFile.ExtractToDirectory(nupkgPath, extractDir, overwriteFiles: true);
 
         // Assert
         File.Exists(Path.Combine(extractDir, "build", "ConcordIO.AsyncApi.Server.props")).Should().BeTrue(
@@ -110,7 +38,7 @@ public class AsyncApiServerPackageIntegrationTests : IClassFixture<ServerPackage
         // Act
         var nupkgPath = Directory.GetFiles(_fixture.PackagesDir, "ConcordIO.AsyncApi.Server.*.nupkg").First();
         var extractDir = Path.Combine(_fixture.TestDir, "extracted-targets");
-        System.IO.Compression.ZipFile.ExtractToDirectory(nupkgPath, extractDir);
+        System.IO.Compression.ZipFile.ExtractToDirectory(nupkgPath, extractDir, overwriteFiles: true);
 
         // Assert
         File.Exists(Path.Combine(extractDir, "build", "ConcordIO.AsyncApi.Server.targets")).Should().BeTrue(
@@ -123,7 +51,7 @@ public class AsyncApiServerPackageIntegrationTests : IClassFixture<ServerPackage
         // Act
         var nupkgPath = Directory.GetFiles(_fixture.PackagesDir, "ConcordIO.AsyncApi.Server.*.nupkg").First();
         var extractDir = Path.Combine(_fixture.TestDir, "extracted-tools");
-        System.IO.Compression.ZipFile.ExtractToDirectory(nupkgPath, extractDir);
+        System.IO.Compression.ZipFile.ExtractToDirectory(nupkgPath, extractDir, overwriteFiles: true);
 
         // Assert
         Directory.Exists(Path.Combine(extractDir, "tools")).Should().BeTrue(
@@ -138,7 +66,7 @@ public class AsyncApiServerPackageIntegrationTests : IClassFixture<ServerPackage
         // Act
         var nupkgPath = Directory.GetFiles(_fixture.PackagesDir, "ConcordIO.AsyncApi.Server.*.nupkg").First();
         var extractDir = Path.Combine(_fixture.TestDir, "extracted-transitive");
-        System.IO.Compression.ZipFile.ExtractToDirectory(nupkgPath, extractDir);
+        System.IO.Compression.ZipFile.ExtractToDirectory(nupkgPath, extractDir, overwriteFiles: true);
 
         // Assert
         File.Exists(Path.Combine(extractDir, "buildTransitive", "ConcordIO.AsyncApi.Server.props")).Should().BeTrue(
@@ -535,7 +463,7 @@ public class AsyncApiServerPackageIntegrationTests : IClassFixture<ServerPackage
             process.StartInfo = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = $"{command} {args}",
+            Arguments = $"{command} {AsyncApiE2ECommandVerbosity.AddDotNetVerbosity(args)}",
                 WorkingDirectory = workingDir,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

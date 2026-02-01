@@ -9,12 +9,20 @@
     <{{ package_property.key }}>{{ package_property.value }}</{{ package_property.key }}>
 {{~ end ~}}
     <contentFiles>
-      <files include="any/any/{{ spec_file }}" buildAction="None" copyToOutput="false" />
+{{~ for kind in specs_by_kind ~}}
+{{~ for spec in kind.value ~}}
+      <files include="any/any/{{ spec }}" buildAction="None" copyToOutput="false" />
+{{~ end ~}}
+{{~ end ~}}
     </contentFiles>
   </metadata>
   <files>
-    <file src="{{ spec_file }}" target="contentFiles/any/any/{{ spec_file }}" />
-    <file src="{{ spec_file }}" target="{{ contract_kind }}/{{ spec_file }}" />
+{{~ for kind in specs_by_kind ~}}
+{{~ for spec in kind.value ~}}
+    <file src="{{ spec }}" target="contentFiles/any/any/{{ spec }}" />
+    <file src="{{ spec }}" target="{{ kind.key }}/{{ spec }}" />
+{{~ end ~}}
+{{~ end ~}}
     <file src="build/{{ package_id }}.targets" target="build/{{ package_id }}.targets" />
   </files>
 </package>

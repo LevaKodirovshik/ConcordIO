@@ -191,7 +191,8 @@ public class AsyncApiContractGenerator
             DictionaryType = _settings.DictionaryType,
             Namespace = string.Empty, // We handle namespace ourselves
             GenerateJsonMethods = false,
-            GenerateDefaultValues = true
+            GenerateDefaultValues = true,
+            JsonLibrary = CSharpJsonLibrary.SystemTextJson // Use System.Text.Json instead of Newtonsoft
         };
 
         // Generate the type using NJsonSchema
@@ -228,6 +229,7 @@ public class AsyncApiContractGenerator
         var sb = new StringBuilder();
         var inClass = false;
         var braceCount = 0;
+        var foundOpeningBrace = false;
 
         foreach (var line in lines)
         {
@@ -237,7 +239,13 @@ public class AsyncApiContractGenerator
             if (trimmed.StartsWith("using ") || 
                 trimmed.StartsWith("namespace ") || 
                 trimmed.StartsWith("#pragma ") ||
-                trimmed.StartsWith("//") && !inClass)
+                (trimmed.StartsWith("//") && !inClass))
+            {
+                continue;
+            }
+
+            // Skip empty lines before we've started capturing
+            if (!inClass && string.IsNullOrWhiteSpace(trimmed))
             {
                 continue;
             }
@@ -246,7 +254,8 @@ public class AsyncApiContractGenerator
             if (!inClass && (trimmed.StartsWith("public class ") || 
                             trimmed.StartsWith("public partial class ") ||
                             trimmed.StartsWith("public record ") ||
-                            trimmed.StartsWith("public sealed class ")))
+                            trimmed.StartsWith("public sealed class ") ||
+                            trimmed.StartsWith("[System.")))  // Also capture attributes
             {
                 inClass = true;
             }
@@ -259,7 +268,14 @@ public class AsyncApiContractGenerator
                 braceCount += line.Count(c => c == '{');
                 braceCount -= line.Count(c => c == '}');
 
-                if (braceCount == 0 && sb.Length > 0)
+                // Mark that we've found at least one opening brace
+                if (line.Contains('{'))
+                {
+                    foundOpeningBrace = true;
+                }
+
+                // Only break when we've found the opening brace and matched all braces
+                if (foundOpeningBrace && braceCount == 0 && sb.Length > 0)
                 {
                     break;
                 }
@@ -267,9 +283,9 @@ public class AsyncApiContractGenerator
         }
 
         var result = sb.ToString().Trim();
-        
-        // If extraction failed, generate a simple POCO
-        if (string.IsNullOrEmpty(result))
+
+        // If extraction failed or we have an incomplete class, generate a simple POCO
+        if (string.IsNullOrEmpty(result) || !result.Contains('{') || !result.Contains('}'))
         {
             return $"public partial class {typeName}\n{{\n}}";
         }

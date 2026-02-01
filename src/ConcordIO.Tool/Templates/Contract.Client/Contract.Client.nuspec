@@ -11,7 +11,12 @@
 {{~ end ~}}
         <dependencies>
             <dependency id="{{ contract_package_id }}" version="{{ contract_version }}" />
+{{~ if has_openapi ~}}
             <dependency id="NSwag.ApiDescription.Client" version="14.*" include="build,contentFiles" exclude="compile,runtime"/>
+{{~ end ~}}
+{{~ if has_asyncapi ~}}
+            <dependency id="ConcordIO.AsyncApi.Client" version="0.1.*" include="build" exclude="compile,runtime"/>
+{{~ end ~}}
         </dependencies>
     </metadata>
     <files>

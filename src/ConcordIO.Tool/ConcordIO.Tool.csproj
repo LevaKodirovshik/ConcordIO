@@ -59,5 +59,8 @@
 			<PackageCopyToOutput>true</PackageCopyToOutput>
 		</Content>
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Templates\Contract.AsyncApi.Client\" />
+	</ItemGroup>
 
 </Project>

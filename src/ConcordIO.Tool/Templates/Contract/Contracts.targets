@@ -1,10 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+{{~ if has_openapi || has_proto ~}}
+    <!-- OpenAPI/Proto contracts - expose as ConcordIOContract -->
     <ItemGroup>
-        <ConcordIOContract Include="$(MSBuildThisFileDirectory)..\openapi\{{ spec_file }}">
+{{~ if has_openapi ~}}
+{{~ for spec in specs_by_kind["openapi"] ~}}
+        <ConcordIOContract Include="$(MSBuildThisFileDirectory)..\openapi\{{ spec }}">
             <PackageId>{{ package_id }}</PackageId>
-            <Kind>{{ contract_kind }}</Kind>
+            <Kind>openapi</Kind>
             <Version>{{ version }}</Version>
         </ConcordIOContract>
+{{~ end ~}}
+{{~ end ~}}
+{{~ if has_proto ~}}
+{{~ for spec in specs_by_kind["proto"] ~}}
+        <ConcordIOContract Include="$(MSBuildThisFileDirectory)..\proto\{{ spec }}">
+            <PackageId>{{ package_id }}</PackageId>
+            <Kind>proto</Kind>
+            <Version>{{ version }}</Version>
+        </ConcordIOContract>
+{{~ end ~}}
+{{~ end ~}}
     </ItemGroup>
+{{~ end ~}}
+{{~ if has_asyncapi ~}}
+    <!-- AsyncAPI contracts - expose as ConcordIOAsyncApiContract for client generation -->
+    <ItemGroup>
+{{~ for spec in specs_by_kind["asyncapi"] ~}}
+        <ConcordIOAsyncApiContract Include="$(MSBuildThisFileDirectory)..\asyncapi\{{ spec }}">
+            <PackageId>{{ package_id }}</PackageId>
+            <Kind>asyncapi</Kind>
+            <Version>{{ version }}</Version>
+        </ConcordIOAsyncApiContract>
+{{~ end ~}}
+    </ItemGroup>
+{{~ end ~}}
 </Project>
