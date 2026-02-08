@@ -33,7 +33,14 @@ public class TemplateRendererTests
             ["description"] = "Test Description",
             ["spec_file"] = "openapi.yaml",
             ["contract_kind"] = "openapi",
-            ["package_properties"] = Array.Empty<KeyValuePair<string, string>>()
+            ["package_properties"] = Array.Empty<KeyValuePair<string, string>>(),
+            ["specs_by_kind"] = new Dictionary<string, List<string>>
+            {
+                ["openapi"] = ["openapi.yaml"]
+            },
+            ["has_openapi"] = true,
+            ["has_proto"] = false,
+            ["has_asyncapi"] = false
         };
 
         // Act
@@ -56,7 +63,14 @@ public class TemplateRendererTests
             ["package_id"] = "TestPackage",
             ["version"] = "1.0.0",
             ["spec_file"] = "openapi.yaml",
-            ["contract_kind"] = "openapi"
+            ["contract_kind"] = "openapi",
+            ["specs_by_kind"] = new Dictionary<string, List<string>>
+            {
+                ["openapi"] = ["openapi.yaml"]
+            },
+            ["has_openapi"] = true,
+            ["has_proto"] = false,
+            ["has_asyncapi"] = false
         };
 
         // Act
@@ -82,7 +96,10 @@ public class TemplateRendererTests
             ["contract_package_id"] = "TestPackage",
             ["contract_version"] = "1.0.0",
             ["contract_kind"] = "openapi",
-            ["package_properties"] = Array.Empty<KeyValuePair<string, string>>()
+            ["package_properties"] = Array.Empty<KeyValuePair<string, string>>(),
+            ["has_openapi"] = true,
+            ["has_proto"] = false,
+            ["has_asyncapi"] = false
         };
 
         // Act
@@ -110,7 +127,8 @@ public class TemplateRendererTests
             ["contract_version"] = "1.0.0",
             ["nswag_client_class_name"] = "TestClient",
             ["nswag_output_path"] = "TestClient",
-            ["nswag_options"] = nswagOptions
+            ["nswag_options"] = nswagOptions,
+            ["has_openapi"] = true
         };
 
         // Act

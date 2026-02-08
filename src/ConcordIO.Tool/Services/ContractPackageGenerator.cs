@@ -76,20 +76,29 @@ public class ContractPackageGenerator
 
     private static Dictionary<string, object> BuildContractModel(ContractPackageOptions options)
     {
+        var specsByKind = new Dictionary<string, List<string>>(options.SpecsByKind, StringComparer.OrdinalIgnoreCase);
+
         return new Dictionary<string, object>
         {
             ["package_id"] = options.PackageId,
             ["version"] = options.Version,
             ["authors"] = options.Authors,
             ["description"] = options.Description,
-            ["spec_file"] = options.SpecFileName,
-            ["contract_kind"] = options.Kind,
-            ["package_properties"] = options.PackageProperties
+            ["package_properties"] = options.PackageProperties,
+            ["specs_by_kind"] = specsByKind,
+            ["has_openapi"] = specsByKind.ContainsKey("openapi"),
+            ["has_proto"] = specsByKind.ContainsKey("proto"),
+            ["has_asyncapi"] = specsByKind.ContainsKey("asyncapi")
         };
     }
 
     private static Dictionary<string, object> BuildClientModel(ClientPackageOptions options)
     {
+        var specsByKind = options.SpecsByKind;
+        var hasOpenApi = specsByKind.ContainsKey("openapi");
+        var hasProto = specsByKind.ContainsKey("proto");
+        var hasAsyncApi = specsByKind.ContainsKey("asyncapi");
+
         return new Dictionary<string, object>
         {
             ["client_package_id"] = options.ClientPackageId,
@@ -98,11 +107,14 @@ public class ContractPackageGenerator
             ["description"] = options.Description,
             ["contract_package_id"] = options.ContractPackageId,
             ["contract_version"] = options.ContractVersion,
-            ["contract_kind"] = options.Kind,
             ["package_properties"] = options.PackageProperties,
             ["nswag_client_class_name"] = options.NSwagClientClassName,
             ["nswag_output_path"] = options.NSwagOutputPath,
-            ["nswag_options"] = options.NSwagOptions
+            ["nswag_options"] = options.NSwagOptions,
+            ["client_options"] = options.ClientOptions,
+            ["has_openapi"] = hasOpenApi,
+            ["has_proto"] = hasProto,
+            ["has_asyncapi"] = hasAsyncApi
         };
     }
 }
@@ -116,10 +128,9 @@ public class ContractPackageOptions
     public required string Version { get; init; }
     public required string Authors { get; init; }
     public required string Description { get; init; }
-    public required string SpecFileName { get; init; }
-    public required string Kind { get; init; }
     public required string OutputDirectory { get; init; }
     public KeyValuePair<string, string>[] PackageProperties { get; init; } = [];
+    public required Dictionary<string, List<string>> SpecsByKind { get; init; }
 }
 
 /// <summary>
@@ -133,12 +144,13 @@ public class ClientPackageOptions
     public required string Version { get; init; }
     public required string Authors { get; init; }
     public required string Description { get; init; }
-    public required string Kind { get; init; }
     public required string OutputDirectory { get; init; }
     public required string NSwagClientClassName { get; init; }
     public required string NSwagOutputPath { get; init; }
     public KeyValuePair<string, string>[] PackageProperties { get; init; } = [];
     public List<KeyValuePair<string, string>> NSwagOptions { get; init; } = [];
+    public List<KeyValuePair<string, string>> ClientOptions { get; init; } = [];
+    public required Dictionary<string, List<string>> SpecsByKind { get; init; }
 }
 
 /// <summary>

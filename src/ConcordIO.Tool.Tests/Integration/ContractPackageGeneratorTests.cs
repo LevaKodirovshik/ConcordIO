@@ -28,9 +28,12 @@ public class ContractPackageGeneratorTests
             Version = "1.2.3",
             Authors = "My Company",
             Description = "OpenAPI contracts for My Company API",
-            SpecFileName = "api.yaml",
-            Kind = "openapi",
             OutputDirectory = "/output"
+            ,
+            SpecsByKind = new Dictionary<string, List<string>>
+            {
+                ["openapi"] = ["api.yaml"]
+            }
         };
 
         string? capturedNuspecContent = null;
@@ -79,7 +82,6 @@ public class ContractPackageGeneratorTests
             Version = "1.2.3",
             Authors = "My Company",
             Description = "Client for MyCompany API",
-            Kind = "openapi",
             OutputDirectory = "/output",
             NSwagClientClassName = "MyCompanyApiClient",
             NSwagOutputPath = "MyCompanyApiClient",
@@ -87,6 +89,10 @@ public class ContractPackageGeneratorTests
             {
                 new("NSwagJsonLibrary", "SystemTextJson"),
                 new("NSwagGenerateExceptionClasses", "true")
+            },
+            SpecsByKind = new Dictionary<string, List<string>>
+            {
+                ["openapi"] = ["api.yaml"]
             }
         };
 
@@ -118,14 +124,16 @@ public class ContractPackageGeneratorTests
             Version = "1.0.0",
             Authors = "Author",
             Description = "Description",
-            SpecFileName = "spec.yaml",
-            Kind = "openapi",
             OutputDirectory = "/output",
             PackageProperties =
             [
                 new("projectUrl", "https://github.com/example/repo"),
                 new("license", "MIT")
-            ]
+            ],
+            SpecsByKind = new Dictionary<string, List<string>>
+            {
+                ["openapi"] = ["spec.yaml"]
+            }
         };
 
         // Act

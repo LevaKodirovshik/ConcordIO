@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!-- OpenAPI/Proto contracts - expose as ConcordIOContract -->
     <ItemGroup>
         <ConcordIOContract Include="$(MSBuildThisFileDirectory)..\openapi\petstore.yaml">
             <PackageId>Acme.PetStore.Contracts</PackageId>

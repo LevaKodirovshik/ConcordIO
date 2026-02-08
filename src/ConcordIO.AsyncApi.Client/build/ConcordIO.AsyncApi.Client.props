@@ -1,0 +1,21 @@
+<!-- ConcordIO.AsyncApi.Client.props - Default properties -->
+<Project>
+
+  <PropertyGroup>
+    <!-- 
+      Output directory for generated C# files.
+      Default: obj/{Configuration}/{TargetFramework}/ConcordIO.AsyncApi.Generated/
+      Computed at target time when IntermediateOutputPath is available.
+    -->
+    
+    <!-- Whether to generate System.ComponentModel.DataAnnotations attributes -->
+    <ConcordIOClientGenerateDataAnnotations Condition="'$(ConcordIOClientGenerateDataAnnotations)' == ''">true</ConcordIOClientGenerateDataAnnotations>
+    
+    <!-- Whether to generate nullable reference type annotations -->
+    <ConcordIOClientGenerateNullableReferenceTypes Condition="'$(ConcordIOClientGenerateNullableReferenceTypes)' == ''">true</ConcordIOClientGenerateNullableReferenceTypes>
+    
+    <!-- The class style: Poco or Record -->
+    <ConcordIOClientClassStyle Condition="'$(ConcordIOClientClassStyle)' == ''">Poco</ConcordIOClientClassStyle>
+  </PropertyGroup>
+
+</Project>

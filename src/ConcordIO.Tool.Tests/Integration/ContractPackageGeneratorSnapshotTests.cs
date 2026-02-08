@@ -21,14 +21,16 @@ public class ContractPackageGeneratorSnapshotTests
             Version = "2.1.0",
             Authors = "Acme Corporation",
             Description = "OpenAPI specification for the Pet Store API",
-            SpecFileName = "petstore.yaml",
-            Kind = "openapi",
             OutputDirectory = "/output",
             PackageProperties =
             [
                 new("projectUrl", "https://github.com/acme/petstore"),
                 new("repositoryUrl", "https://github.com/acme/petstore.git")
-            ]
+            ],
+            SpecsByKind = new Dictionary<string, List<string>>
+            {
+                ["openapi"] = ["petstore.yaml"]
+            }
         };
 
         // Act
@@ -49,9 +51,11 @@ public class ContractPackageGeneratorSnapshotTests
             Version = "2.1.0",
             Authors = "Acme Corporation",
             Description = "OpenAPI specification for the Pet Store API",
-            SpecFileName = "petstore.yaml",
-            Kind = "openapi",
-            OutputDirectory = "/output"
+            OutputDirectory = "/output",
+            SpecsByKind = new Dictionary<string, List<string>>
+            {
+                ["openapi"] = ["petstore.yaml"]
+            }
         };
 
         // Act
@@ -74,14 +78,17 @@ public class ContractPackageGeneratorSnapshotTests
             Version = "2.1.0",
             Authors = "Acme Corporation",
             Description = "Generated client for Pet Store API",
-            Kind = "openapi",
             OutputDirectory = "/output",
             NSwagClientClassName = "PetStoreClient",
             NSwagOutputPath = "PetStoreClient",
             PackageProperties =
             [
                 new("projectUrl", "https://github.com/acme/petstore")
-            ]
+            ],
+            SpecsByKind = new Dictionary<string, List<string>>
+            {
+                ["openapi"] = ["petstore.yaml"]
+            }
         };
 
         // Act
@@ -104,7 +111,6 @@ public class ContractPackageGeneratorSnapshotTests
             Version = "2.1.0",
             Authors = "Acme Corporation",
             Description = "Generated client for Pet Store API",
-            Kind = "openapi",
             OutputDirectory = "/output",
             NSwagClientClassName = "PetStoreClient",
             NSwagOutputPath = "PetStoreClient",
@@ -114,7 +120,11 @@ public class ContractPackageGeneratorSnapshotTests
                 new("NSwagJsonPolymorphicSerializationStyle", "SystemTextJson"),
                 new("NSwagGenerateExceptionClasses", "true"),
                 new("NSwagInjectHttpClient", "true")
-            ]
+            ],
+            SpecsByKind = new Dictionary<string, List<string>>
+            {
+                ["openapi"] = ["petstore.yaml"]
+            }
         };
 
         // Act

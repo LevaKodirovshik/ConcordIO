@@ -1,0 +1,318 @@
+using Neuroglia.AsyncApi.v3;
+using NJsonSchema;
+using NJsonSchema.CodeGeneration.CSharp;
+using System.Text;
+using System.Text.Json;
+
+namespace ConcordIO.AsyncApi.Client;
+
+/// <summary>
+/// Generates C# contract types from AsyncAPI specifications.
+/// Handles proper namespaces, cross-references, and external type detection.
+/// </summary>
+public class AsyncApiContractGenerator
+{
+    private const string DotNetNamespaceExtension = "x-dotnet-namespace";
+    private const string DotNetTypeExtension = "x-dotnet-type";
+
+    private readonly ContractGeneratorSettings _settings;
+    private readonly ExternalTypeResolver _externalTypeResolver;
+
+    /// <summary>
+    /// Creates a new contract generator with default settings.
+    /// </summary>
+    public AsyncApiContractGenerator()
+        : this(new ContractGeneratorSettings(), new ExternalTypeResolver())
+    {
+    }
+
+    /// <summary>
+    /// Creates a new contract generator with the specified settings.
+    /// </summary>
+    /// <param name="settings">Generator settings.</param>
+    /// <param name="externalTypeResolver">Resolver for external types.</param>
+    public AsyncApiContractGenerator(ContractGeneratorSettings settings, ExternalTypeResolver externalTypeResolver)
+    {
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _externalTypeResolver = externalTypeResolver ?? throw new ArgumentNullException(nameof(externalTypeResolver));
+    }
+
+    /// <summary>
+    /// Generates C# contract types from an AsyncAPI document.
+    /// </summary>
+    /// <param name="document">The AsyncAPI document.</param>
+    /// <returns>The generation result with source files.</returns>
+    public ContractGenerationResult Generate(V3AsyncApiDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+
+        var schemas = document.Components?.Schemas ?? [];
+        var messages = document.Components?.Messages ?? [];
+
+        // Collect all types from schemas
+        var typesToProcess = new Dictionary<string, (string Namespace, object Schema)>(StringComparer.Ordinal);
+
+        foreach (var (name, schemaDef) in schemas)
+        {
+            var ns = GetNamespaceFromExtension(schemaDef.Schema);
+            typesToProcess[name] = (ns, schemaDef.Schema);
+        }
+
+        // Determine which types are external vs need generation
+        var externalTypes = new List<TypeInfo>();
+        var typesToGenerate = new Dictionary<string, (string Namespace, object Schema)>(StringComparer.Ordinal);
+
+        foreach (var (name, (ns, schema)) in typesToProcess)
+        {
+            var fullTypeName = string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
+            var externalInfo = _externalTypeResolver.GetExternalTypeInfo(fullTypeName);
+
+            if (externalInfo is not null)
+            {
+                externalTypes.Add(externalInfo);
+            }
+            else
+            {
+                typesToGenerate[name] = (ns, schema);
+            }
+        }
+
+        // Group by namespace for file generation
+        var byNamespace = typesToGenerate
+            .GroupBy(kvp => kvp.Value.Namespace)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var sourceFiles = new List<GeneratedSourceFile>();
+        var generatedTypes = new List<TypeInfo>();
+
+        // Generate a file per namespace
+        foreach (var (ns, types) in byNamespace)
+        {
+            var (fileName, content, typeInfos) = GenerateNamespaceFile(ns, types, byNamespace.Keys, externalTypes);
+            sourceFiles.Add(new GeneratedSourceFile(fileName, ns, content, typeInfos));
+            generatedTypes.AddRange(typeInfos);
+        }
+
+        return new ContractGenerationResult(sourceFiles, externalTypes, generatedTypes);
+    }
+
+    private (string FileName, string Content, List<TypeInfo> Types) GenerateNamespaceFile(
+        string ns,
+        List<KeyValuePair<string, (string Namespace, object Schema)>> types,
+        IEnumerable<string> allNamespaces,
+        List<TypeInfo> externalTypes)
+    {
+        var sb = new StringBuilder();
+        var typeInfos = new List<TypeInfo>();
+
+        // Determine required using statements
+        var usings = new HashSet<string>(StringComparer.Ordinal);
+
+        // Add system usings based on settings
+        usings.Add("System");
+        if (_settings.GenerateDataAnnotations)
+        {
+            usings.Add("System.ComponentModel.DataAnnotations");
+        }
+        usings.Add("System.Collections.Generic");
+
+        // Add usings for other namespaces in this document
+        foreach (var otherNs in allNamespaces)
+        {
+            if (!string.IsNullOrEmpty(otherNs) && otherNs != ns)
+            {
+                usings.Add(otherNs);
+            }
+        }
+
+        // Add usings for external types
+        foreach (var ext in externalTypes)
+        {
+            if (!string.IsNullOrEmpty(ext.Namespace) && ext.Namespace != ns)
+            {
+                usings.Add(ext.Namespace);
+            }
+        }
+
+        // Write file header
+        sb.AppendLine("// <auto-generated>");
+        sb.AppendLine("//     This code was generated by ConcordIO.AsyncApi.Client.");
+        sb.AppendLine("//     Do not modify this file directly.");
+        sb.AppendLine("// </auto-generated>");
+        sb.AppendLine();
+        sb.AppendLine("#nullable enable");
+        sb.AppendLine();
+
+        // Write using statements
+        foreach (var u in usings.OrderBy(u => u))
+        {
+            sb.AppendLine($"using {u};");
+        }
+
+        sb.AppendLine();
+
+        // Write namespace
+        var namespaceToUse = string.IsNullOrEmpty(ns) ? "GeneratedContracts" : ns;
+        sb.AppendLine($"namespace {namespaceToUse};");
+        sb.AppendLine();
+
+        // Generate each type
+        foreach (var (name, (_, schema)) in types)
+        {
+            var typeCode = GenerateTypeFromSchema(name, schema);
+            sb.AppendLine(typeCode);
+            sb.AppendLine();
+
+            typeInfos.Add(new TypeInfo(name, namespaceToUse));
+        }
+
+        var fileName = $"{namespaceToUse}.g.cs";
+        return (fileName, sb.ToString(), typeInfos);
+    }
+
+    private string GenerateTypeFromSchema(string typeName, object schema)
+    {
+        // Convert the schema to a JsonSchema for NJsonSchema code generation
+        var jsonSchema = ConvertToJsonSchema(schema);
+
+        // Configure CSharp generator settings
+        var csharpSettings = new CSharpGeneratorSettings
+        {
+            ClassStyle = _settings.ClassStyle == GeneratedClassStyle.Record
+                ? CSharpClassStyle.Record
+                : CSharpClassStyle.Poco,
+            GenerateDataAnnotations = _settings.GenerateDataAnnotations,
+            GenerateNullableReferenceTypes = _settings.GenerateNullableReferenceTypes,
+            DateType = _settings.DateType,
+            DateTimeType = _settings.DateTimeType,
+            TimeType = _settings.TimeType,
+            TimeSpanType = _settings.TimeSpanType,
+            ArrayType = _settings.ArrayType,
+            DictionaryType = _settings.DictionaryType,
+            Namespace = string.Empty, // We handle namespace ourselves
+            GenerateJsonMethods = false,
+            GenerateDefaultValues = true,
+            JsonLibrary = CSharpJsonLibrary.SystemTextJson // Use System.Text.Json instead of Newtonsoft
+        };
+
+        // Generate the type using NJsonSchema
+        var generator = new CSharpGenerator(jsonSchema, csharpSettings);
+        var code = generator.GenerateFile(typeName);
+
+        // Extract just the class definition, removing namespace wrapper and usings that NJsonSchema adds
+        return ExtractClassDefinition(code, typeName);
+    }
+
+    private static JsonSchema ConvertToJsonSchema(object schema)
+    {
+        // The schema from AsyncAPI could be a JsonElement or a dictionary
+        // We need to serialize it and parse as JsonSchema
+        string jsonString;
+
+        if (schema is JsonElement jsonElement)
+        {
+            jsonString = jsonElement.GetRawText();
+        }
+        else
+        {
+            jsonString = JsonSerializer.Serialize(schema);
+        }
+
+        return JsonSchema.FromJsonAsync(jsonString).GetAwaiter().GetResult();
+    }
+
+    private static string ExtractClassDefinition(string generatedCode, string typeName)
+    {
+        // NJsonSchema generates a full file with namespace and usings
+        // We need to extract just the class/record definition
+        var lines = generatedCode.Split('\n');
+        var sb = new StringBuilder();
+        var inClass = false;
+        var braceCount = 0;
+        var foundOpeningBrace = false;
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.TrimStart();
+
+            // Skip using statements and namespace declarations
+            if (trimmed.StartsWith("using ") || 
+                trimmed.StartsWith("namespace ") || 
+                trimmed.StartsWith("#pragma ") ||
+                (trimmed.StartsWith("//") && !inClass))
+            {
+                continue;
+            }
+
+            // Skip empty lines before we've started capturing
+            if (!inClass && string.IsNullOrWhiteSpace(trimmed))
+            {
+                continue;
+            }
+
+            // Start capturing when we hit the class/record definition
+            if (!inClass && (trimmed.StartsWith("public class ") || 
+                            trimmed.StartsWith("public partial class ") ||
+                            trimmed.StartsWith("public record ") ||
+                            trimmed.StartsWith("public sealed class ") ||
+                            trimmed.StartsWith("[System.")))  // Also capture attributes
+            {
+                inClass = true;
+            }
+
+            if (inClass)
+            {
+                sb.AppendLine(line.TrimEnd());
+
+                // Track braces to know when the class ends
+                braceCount += line.Count(c => c == '{');
+                braceCount -= line.Count(c => c == '}');
+
+                // Mark that we've found at least one opening brace
+                if (line.Contains('{'))
+                {
+                    foundOpeningBrace = true;
+                }
+
+                // Only break when we've found the opening brace and matched all braces
+                if (foundOpeningBrace && braceCount == 0 && sb.Length > 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        var result = sb.ToString().Trim();
+
+        // If extraction failed or we have an incomplete class, generate a simple POCO
+        if (string.IsNullOrEmpty(result) || !result.Contains('{') || !result.Contains('}'))
+        {
+            return $"public partial class {typeName}\n{{\n}}";
+        }
+
+        return result;
+    }
+
+    private static string GetNamespaceFromExtension(object schema)
+    {
+        // Try to extract x-dotnet-namespace from the schema
+        if (schema is JsonElement element && element.ValueKind == JsonValueKind.Object)
+        {
+            if (element.TryGetProperty(DotNetNamespaceExtension, out var nsElement) &&
+                nsElement.ValueKind == JsonValueKind.String)
+            {
+                return nsElement.GetString() ?? string.Empty;
+            }
+        }
+
+        if (schema is IDictionary<string, object> dict)
+        {
+            if (dict.TryGetValue(DotNetNamespaceExtension, out var ns) && ns is string nsString)
+            {
+                return nsString;
+            }
+        }
+
+        return string.Empty;
+    }
+}

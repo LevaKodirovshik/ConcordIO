@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+{{~ if has_openapi ~}}
+    <!-- OpenAPI client: Links OpenAPI contract to NSwag for code generation -->
     <Target Name="ConcordIOAddOpenApiReferenceForNSwag" 
             AfterTargets="ResolvePackageAssets"
             Condition="'@(ConcordIOContract)' != ''">
@@ -15,4 +17,22 @@
             </OpenApiReference>
         </ItemGroup>
     </Target>
+{{~ end ~}}
+{{~ if has_asyncapi ~}}
+    <!-- AsyncAPI client: Links AsyncAPI contract to ConcordIO.AsyncApi.Client for code generation -->
+    <Target Name="ConcordIOAddAsyncApiContractForGeneration" 
+            AfterTargets="ResolvePackageAssets"
+            Condition="'@(ConcordIOAsyncApiContract)' != ''">
+        <ItemGroup>
+            <ConcordIOAsyncApiContract Include="@(ConcordIOAsyncApiContract)" 
+                                       Condition="'%(ConcordIOAsyncApiContract.PackageId)' == '{{ contract_package_id }}'">
+                <SourcePackage>{{ contract_package_id }}</SourcePackage>
+                <SourceVersion>{{ contract_version }}</SourceVersion>
+{{~ for option in client_options ~}}
+                <{{ option.key }}>{{ option.value }}</{{ option.key }}>
+{{~ end ~}}
+            </ConcordIOAsyncApiContract>
+        </ItemGroup>
+    </Target>
+{{~ end ~}}
 </Project>
