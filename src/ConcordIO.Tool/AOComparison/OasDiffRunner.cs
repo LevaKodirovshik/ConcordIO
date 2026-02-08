@@ -91,6 +91,15 @@ public class OasDiffRunner : IOasDiffRunner
             throw new FileNotFoundException($"oasdiff binary not found at: {fullPath}");
         }
 
+        // Ensure the binary is executable on Unix platforms.
+        // Git on Windows does not preserve the Unix executable bit,
+        // so the binary may lack +x after checkout or NuGet install.
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            File.SetUnixFileMode(fullPath,
+                File.GetUnixFileMode(fullPath) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
+        }
+
         return fullPath;
     }
 }

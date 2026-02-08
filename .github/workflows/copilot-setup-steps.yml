@@ -23,10 +23,10 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Install Mono runtime (for nuget.exe)
+      - name: Install Mono (for nuget.exe)
         run: |
           sudo apt-get update
-          sudo apt-get install -y mono-runtime
+          sudo apt-get install -y mono-complete
 
       - name: Install nuget.exe
         run: |
@@ -36,3 +36,9 @@ jobs:
 
       - name: Verify nuget CLI
         run: nuget help | head -5
+
+      - name: Restore dependencies
+        run: dotnet restore src/ConcordIO.Tool.sln
+
+      - name: Build
+        run: dotnet build src/ConcordIO.Tool.sln --no-restore
