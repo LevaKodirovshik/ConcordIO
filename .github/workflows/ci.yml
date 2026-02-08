@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-unit-tests:
+    name: Build & Unit/Integration Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore src/ConcordIO.Tool.sln
+
+      - name: Build
+        run: dotnet build src/ConcordIO.Tool.sln --no-restore
+
+      - name: Run unit & integration tests
+        run: dotnet test src/ConcordIO.Tool.sln --no-build --filter "FullyQualifiedName!~E2E"
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install Mono runtime (for nuget.exe)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mono-runtime
+
+      - name: Install nuget.exe
+        run: |
+          sudo curl -o /usr/local/bin/nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
+          printf '#!/bin/bash\nmono /usr/local/bin/nuget.exe "$@"\n' | sudo tee /usr/local/bin/nuget > /dev/null
+          sudo chmod +x /usr/local/bin/nuget
+
+      - name: Restore
+        run: dotnet restore src/ConcordIO.Tool.sln
+
+      - name: Build
+        run: dotnet build src/ConcordIO.Tool.sln --no-restore
+
+      - name: Run E2E tests
+        run: dotnet test src/ConcordIO.Tool.sln --no-build --filter "FullyQualifiedName~E2E"
