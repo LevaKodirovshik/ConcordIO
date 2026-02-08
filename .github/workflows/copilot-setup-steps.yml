@@ -36,6 +36,3 @@ jobs:
 
       - name: Verify nuget CLI
         run: nuget help | head -5
-
-      - name: Restore NuGet packages
-        run: dotnet restore src/ConcordIO.Tool.sln
